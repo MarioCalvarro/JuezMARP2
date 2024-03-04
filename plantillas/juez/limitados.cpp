@@ -3,16 +3,20 @@
 #include <iostream>
 #include <fstream>
 
-tSol resolver(tDatos datos) 
-{
+using namespace std;
 
+using res_t = int;
+
+res_t resolver() 
+{
+    return 0;
 }
 
 void resuelveCaso() 
 {
     //Leer
 
-    tSol sol = resolver(datos);
+    res_t sol = resolver();
 
     //Escribir
 }
