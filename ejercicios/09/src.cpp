@@ -2,69 +2,92 @@
 
 #include <iostream>
 #include <fstream>
+#include <queue>
+#include <unordered_map>
 #include <vector>
 
 using namespace std;
 
-using res_t = size_t;
+//-1 indica desconexión
+using res_t = int;
 
-using matriz_t = vector<vector<size_t>>;
+//Vamos a pasar los string a enteros positivos
+using grafo_t = vector<vector<size_t>>;
 
-res_t resolver(const vector<size_t>& cubos)
+
+//BFS para ver la distancia mínima para alcanzar todos los nodos
+res_t resolver(const grafo_t& grafo)
 {
-    size_t n = cubos.size();
-    //Tabla(i, j) : maximo que puede comer considerando los cubos desde i hasta j
-    matriz_t tabla = matriz_t(n + 2, vector<size_t>(n + 2, 0));
-        //Dejamos un borde alrededor vacío para evitar RTE
+    int res = 0;
+    for (size_t v = 0; v < grafo.size(); ++v) {
+        vector<bool> marcados = vector<bool>(grafo.size(), false); marcados[v] = true;
 
-    //Casos base
-    for (size_t i = 1; i <= n; ++i) {
-        tabla[i][i] = cubos[i-1];
-    }
+        queue<size_t> cola;
+        cola.push(v);
+        marcados[v] = true;
+        size_t num_visitados = 1;
+        vector<int> distancias (grafo.size(), 0);
+        while(!cola.empty()) {
+            size_t curr = cola.front();
+            cola.pop();
 
-    for (size_t d = 1; d < n; ++d) {
-        for (size_t p = d + 1; p <= n; ++p) {
-            size_t r = p - d, c = p;
-            size_t ini = r - 1, fin = c - 1;        //Para tener en cuenta que
-                                                    //hemos añadido una fila y
-                                                    //columna vacías
-            if (cubos[ini + 1] >= cubos[fin] && cubos[ini] >= cubos[fin - 1]) {
-                tabla[r][c] = max(tabla[r+2][c] + cubos[ini], tabla[r+1][c-1] + cubos[fin]);
+            for (size_t w : grafo[curr]) {
+                if (!marcados[w]) {
+                    distancias[w] = distancias[curr] + 1;
+                    res = max(distancias[w], res);
+
+                    cola.push(w);
+                    marcados[w] = true;
+                    num_visitados++;
+                }
             }
-            else if (cubos[ini + 1] >= cubos[fin] && cubos[ini] < cubos[fin - 1]) {
-                tabla[r][c] = max(tabla[r+2][c] + cubos[ini], tabla[r][c-2] + cubos[fin]);
-            }
-            else if (cubos[ini + 1] < cubos[fin] && cubos[ini] >= cubos[fin - 1]) {
-                tabla[r][c] = max(tabla[r+1][p-1] + cubos[ini], tabla[r+1][c-1] + cubos[fin]);
-            }
-            else {
-                tabla[r][c] = max(tabla[r+1][p-1] + cubos[ini], tabla[r][c-2] + cubos[fin]);
-            }
+        }
+
+        if (num_visitados != grafo.size()) {
+            return -1;
         }
     }
 
-    return tabla[1][n];
+    return res; 
 }
 
 bool resuelveCaso() 
 {
     //Leer
-    size_t num_cubos;
-    cin >> num_cubos;
+    size_t personas, relaciones;
+    size_t siguiente_id = 0;
+    cin >> personas >> relaciones;
 
-    if (num_cubos == 0)
+    if (!cin)
         return false;
 
-    vector<size_t> cubos = vector<size_t>(num_cubos);
+    grafo_t grafo = grafo_t(personas, vector<size_t>());
+    unordered_map<string, size_t> string_to_int = unordered_map<string, size_t>();
+    string aux1, aux2;
+    for (size_t i = 0; i < relaciones; ++i) {
+        cin >> aux1 >> aux2;
 
-    for (size_t i = 0; i < num_cubos; ++i) {
-        cin >> cubos[i];
+        //Si no había aparecido todavía → lo añadimos
+        if (!string_to_int.count(aux1)) {
+            string_to_int[aux1] = siguiente_id++;
+        }
+        if (!string_to_int.count(aux2)) {
+            string_to_int[aux2] = siguiente_id++;
+        }
+
+        grafo[string_to_int[aux1]].push_back(string_to_int[aux2]);
+        grafo[string_to_int[aux2]].push_back(string_to_int[aux1]);
     }
 
-    res_t sol = resolver(cubos);
+    res_t sol = resolver(grafo);
 
     //Escribir
-    cout << sol << '\n';
+    if (sol == -1) {
+        cout << "DESCONECTADA\n";
+    }
+    else{
+        cout << sol << '\n';
+    }
 
     return true;
 }
