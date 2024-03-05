@@ -28,8 +28,27 @@ size_t aibofobia(const string& word, matriz_t& tabla) {
     return tabla[0][n-1];
 }
 
-void reconstruir_sol(const string& word, const matriz_t& tabla, string& nueva_palabra) {
-    
+void reconstruir_sol(const string& word, const matriz_t& tabla, string& nueva_palabra, size_t i, size_t j) {
+    if (i <= j) {
+        if (i == j) {
+            nueva_palabra.push_back(word[i]);
+        }
+        else if (word[i] == word[j]) {
+            nueva_palabra.push_back(word[i]);
+            reconstruir_sol(word, tabla, nueva_palabra, i + 1, j - 1);
+            nueva_palabra.push_back(word[i]);
+        }
+        else if (tabla[i][j] == tabla[i+1][j] + 1) {
+            nueva_palabra.push_back(word[i]);
+            reconstruir_sol(word, tabla, nueva_palabra, i + 1, j);
+            nueva_palabra.push_back(word[i]);
+        }
+        else {
+            nueva_palabra.push_back(word[j]);
+            reconstruir_sol(word, tabla, nueva_palabra, i, j - 1);
+            nueva_palabra.push_back(word[j]);
+        }
+    }
 }
 
 res_t resolver(const string& word) {
@@ -38,7 +57,7 @@ res_t resolver(const string& word) {
     size_t num_letras = aibofobia(word, tabla);
 
     string nueva_palabra = "";
-    reconstruir_sol(word, tabla, nueva_palabra);
+    reconstruir_sol(word, tabla, nueva_palabra, 0, n-1);
     return {num_letras, nueva_palabra};
 }
 
