@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <iostream>
 #include <fstream>
+#include <unordered_set>
 #include <set>
 #include <unordered_map>
 #include <vector>
@@ -13,7 +14,7 @@ using namespace std;
 //Vamos a pasar las nombres a identificadores
 using linea_t = vector<size_t>;
 
-using sol_t = pair<set<size_t>, set<size_t>>;
+using sol_t = pair<unordered_set<size_t>, unordered_set<size_t>>;
 
 //Vamos construyendo la solución parcial
 using matriz_t = vector<vector<sol_t>>;
@@ -21,7 +22,7 @@ using matriz_t = vector<vector<sol_t>>;
 sol_t resolver(const linea_t& linea1, const linea_t& linea2)
 {
     size_t n = linea1.size(), m = linea2.size();
-    matriz_t tabla = matriz_t(n + 1, vector<sol_t>(m+1, {set<size_t>(), set<size_t>()}));
+    matriz_t tabla = matriz_t(n + 1, vector<sol_t>(m+1, {unordered_set<size_t>(), unordered_set<size_t>()}));
 
     for (size_t d = 2; d < n + m + 1; ++d)
     {
@@ -95,8 +96,13 @@ bool resuelveCaso()
 
     auto sol = resolver(linea1, linea2);
 
+    //Tienen que aparecer en orden
+    set<size_t> aux_set = set<size_t>();
+    for (auto s : sol.first) {
+        aux_set.insert(s);
+    }
     //Escribir
-    for (auto index : sol.first) {
+    for (auto index : aux_set) {
         cout << id_nombres[linea1[index]] << ' ';
     }
 
