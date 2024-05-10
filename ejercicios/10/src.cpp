@@ -3,9 +3,9 @@
 #include <algorithm>
 #include <iostream>
 #include <fstream>
-#include <unordered_set>
 #include <set>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <sstream>
 
@@ -14,49 +14,46 @@ using namespace std;
 //Vamos a pasar las nombres a identificadores
 using linea_t = vector<size_t>;
 
-using sol_t = pair<unordered_set<size_t>, unordered_set<size_t>>;
+set<size_t> resolver(const linea_t& ordenadas1, const linea_t& ordenadas2, unordered_set<size_t>& desordenadas1, unordered_set<size_t>& desordenadas2) {
+    vector<vector<int>> matriz(ordenadas1.size() + 1, vector<int> (ordenadas2.size() + 1, 0));
 
-//Vamos construyendo la solución parcial
-using matriz_t = vector<vector<sol_t>>;
-
-sol_t resolver(const linea_t& linea1, const linea_t& linea2)
-{
-    size_t n = linea1.size(), m = linea2.size();
-    matriz_t tabla = matriz_t(n + 1, vector<sol_t>(m+1, {unordered_set<size_t>(), unordered_set<size_t>()}));
-
-    for (size_t d = 2; d < n + m + 1; ++d)
-    {
-        size_t fila_ini = min(d, n);
-        size_t col_ini = d - fila_ini;
-        size_t len_diag = min(fila_ini, m - col_ini) + 1;
-
-        for (int j = 0; j < len_diag; ++j)
-        {
-            size_t r  = fila_ini - j, c = col_ini + j;
-
-            if (r > 0 && c > 0) {
-                if (tabla[r-1][c].first.size() > tabla[r][c-1].first.size() 
-                    || (tabla[r-1][c].first.size() == tabla[r][c-1].first.size()
-                    && n + 1 - r >= m + 1 - c))
-                {
-                    tabla[r][c] = tabla[r-1][c];
+    for (int i = 1; i < matriz.size(); i++) {
+        for (int j = 1; j < matriz[0].size(); j++) {
+            if (!desordenadas1.count(ordenadas2[j - 1])) {
+                matriz[i][j] = matriz[i][j - 1];
+            }
+            else if (!desordenadas2.count(ordenadas1[i - 1])) {
+                matriz[i][j] = matriz[i - 1][j];
+            }
+            else {
+                if (ordenadas1[i - 1] == ordenadas2[j - 1]) {
+                    matriz[i][j] = max(matriz[i - 1][j - 1] + 1, matriz[i - 1][j - 1]);
                 }
                 else {
-                    tabla[r][c] = tabla[r][c-1];
-                }
-
-                if (linea1[r - 1] == linea2[c - 1]
-                    && (!tabla[r][c].first.count(r-1)
-                    && !tabla[r][c].second.count(c-1)))
-                {
-                    tabla[r][c].first.insert(r-1);
-                    tabla[r][c].second.insert(c-1);
+                    matriz[i][j] = max(matriz[i - 1][j], matriz[i][j-1]);
                 }
             }
         }
     }
 
-    return tabla[n][m];
+    set<size_t> canciones;
+    int i = ordenadas1.size();
+    int j = ordenadas2.size();
+    while (i > 0 && j > 0) {
+        if (ordenadas1[i - 1] == ordenadas2[j - 1]) {
+            canciones.insert(i - 1);
+            i--;
+            j--;
+        }
+        else if(matriz[i-1][j] > matriz[i][j-1]) {
+            i -= 1;
+        }
+        else {
+            j -= 1;
+        }
+    }
+
+    return canciones;
 }
 
 bool resuelveCaso() 
@@ -74,6 +71,8 @@ bool resuelveCaso()
 
     vector<size_t> linea1;
     vector<size_t> linea2;
+    unordered_set<size_t> desordenadas1;
+    unordered_set<size_t> desordenadas2;
 
     string aux; size_t aux_id = 0;
     istringstream iss1(line);
@@ -83,6 +82,7 @@ bool resuelveCaso()
             nombres_id[aux] = aux_id++;
         }
         linea1.push_back(nombres_id[aux]);
+        desordenadas1.insert(nombres_id[aux]);
     }
 
     getline(cin, line);
@@ -92,17 +92,13 @@ bool resuelveCaso()
             nombres_id[aux] = aux_id++;
         }
         linea2.push_back(nombres_id[aux]);
+        desordenadas2.insert(nombres_id[aux]);
     }
 
-    auto sol = resolver(linea1, linea2);
+    auto sol = resolver(linea1, linea2, desordenadas1, desordenadas2);
 
-    //Tienen que aparecer en orden
-    set<size_t> aux_set = set<size_t>();
-    for (auto s : sol.first) {
-        aux_set.insert(s);
-    }
     //Escribir
-    for (auto index : aux_set) {
+    for (auto index : sol) {
         cout << id_nombres[linea1[index]] << ' ';
     }
 
