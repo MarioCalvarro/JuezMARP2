@@ -7,41 +7,26 @@
 
 using namespace std;
 
-using matriz_t = vector<vector<int>>;
-
-int indice(const vector<int>& km, int k, int ini, int fin) {
-    if (ini + 1 == fin) {
-        return km[ini] <= k ? ini : 0;
-    }
-    if (ini + 2 == fin) {
-        if (km[ini + 1] <= k) return ini + 1;
-        else return indice(km, k, ini, fin - 1);
-    }
-
-    int m = (ini + fin - 1) / 2;
-    if (km[m] <= k) {
-        return indice(km, k, m, fin);
-    }
-    else {
-        return indice(km, k, ini, m);
-    }
-}
-
 int resolver(const vector<int>& km, const vector<int>& beneficio, int separacion)
 {
     int n = km.size();
-    vector<int> v(n);
 
-    for (int i = 1; i < n; i++) {
-        int index = (0 < km[i] - separacion) ? (indice(km, km[i] - separacion, 0, i)) : 0;
-        v[i] = max(v[i], v[index] + beneficio[i]);
-
-        for (int j = i + 1; j <= n; j++) {
-            v[j] = v[i];
+    vector<int> anterior_pos(n, -1);
+    int anterior_descanso_pos = -1;
+    for (int descanso_act = 1; descanso_act < n; descanso_act++) {
+        while ((km[descanso_act] - km[anterior_descanso_pos + 1]) >= separacion) {
+            anterior_descanso_pos++;
         }
+        anterior_pos[descanso_act] = anterior_descanso_pos;
     }
 
-    return v[n];
+    vector<int> max_beneficios(n+1);
+    max_beneficios[0] = 0;
+    for (int i = 0; i < n; ++i) {
+        max_beneficios[i+1] = max(max_beneficios[anterior_pos[i] + 1] + beneficio[i], max_beneficios[i]);
+    }
+
+    return max_beneficios[n];
 }
 
 bool resuelveCaso() 
@@ -53,13 +38,13 @@ bool resuelveCaso()
     if (!std::cin)
         return false;
 
-    vector<int> km(N + 1);
-    for (int i = 1; i < N + 1; i++) {
+    vector<int> km(N);
+    for (int i = 0; i < N; i++) {
         cin >> km[i];
     }
 
-    vector<int> beneficio(N + 1);
-    for (int i = 1; i < N + 1; i++) {
+    vector<int> beneficio(N);
+    for (int i = 0; i < N; i++) {
         cin >> beneficio[i];
     }
 
