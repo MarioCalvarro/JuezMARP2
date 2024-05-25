@@ -1,99 +1,103 @@
-//DG, Mario Calvarro Marines
+// DG, Mario Calvarro Marines
 
 #include <iostream>
 #include <fstream>
-#include <vector>
 #include <queue>
+#include <utility>
+#include <vector>
+#include <algorithm>
+
 using namespace std;
 
-struct Node {
-    int k, snow, optimistic;
-    vector<bool> assigned;
+using matriz_t = vector<vector<size_t>>;
+using cota_t = vector<size_t>;
+using res_t = size_t;
+
+struct Nodo {
+    size_t k, calidad, optimista;
+    vector<bool> asignado;
 };
 
-bool operator<(const Node& l, const Node& r) {
-    return l.optimistic < r.optimistic;
+bool operator<(const Nodo& lhs, const Nodo& rhs) {
+    return lhs.optimista < rhs.optimista;
 }
 
-vector<int> Matrix;
-vector<int> carros;
-vector<int> caminos;
-int N, M;
+void rellenar_cota_inferior(cota_t &cota, const matriz_t &m) {
+    size_t N = cota.size();
+    size_t M = m[0].size();
+    size_t min_fila = 10001;
 
-vector<int> lower_bound_lookup;
-vector<int> upper_bound_lookup;
-
-void fill_lower_bound_lookup() {
-    lower_bound_lookup.resize(N);
-    int row_min = 10001;
-    
-    for (int j = 0; j < M; ++j)
-        row_min = min(row_min, Matrix[M*(N-1) + j]);
-    lower_bound_lookup[N - 1] = row_min;
-
-    for (int i = N-2; 0 <= i; i--) {
-        row_min = 10001;
-        for (int j = 0; j < M; ++j)
-            row_min = min(row_min, Matrix[i*M + j]);
-        lower_bound_lookup[i] = row_min + lower_bound_lookup[i + 1];
+    for (size_t j = 0; j < M; ++j) {
+        min_fila = min(min_fila, m[N-1][j]);
     }
-    
-}
+    cota[N - 1] = min_fila;
 
-void fill_upper_bound_lookup() {
-    upper_bound_lookup.resize(N);
-    int row_max = 0;
+    for (size_t i = N-1; i > 0; i--) {
+        size_t aux_i = i - 1;
+        min_fila = 10001;
 
-    for (int j = 0; j < M; ++j)
-        row_max = max(row_max, Matrix[M*(N-1) + j]);
-    upper_bound_lookup[N - 1] = row_max;
+        for (size_t j = 0; j < M; ++j) {
+            min_fila = min(min_fila, m[aux_i][j]);
+        }
 
-    for (int i = N-2; 0 <= i; i--) {
-        row_max = 0;
-        for (int j = 0; j < M; ++j)
-            row_max = max(row_max, Matrix[i*M + j]);
-        upper_bound_lookup[i] = row_max + upper_bound_lookup[i + 1];
+        cota[aux_i] = min_fila;
     }
-    
 }
 
-int lower_bound(Node x) {
-    return x.snow + lower_bound_lookup[x.k];
+void rellenar_cota_superior(cota_t &cota, const matriz_t &m) {
+    size_t N = cota.size();
+    size_t M = m[0].size();
+    size_t max_fila = 0;
+
+    for (size_t j = 0; j < M; ++j) {
+        max_fila = max(max_fila, m[N-1][j]);
+    }
+    cota[N - 1] = max_fila;
+
+    for (size_t i = N-1; i > 0; i--) {
+        size_t aux_i = i - 1;
+        max_fila = 0;
+
+        for (size_t j = 0; j < M; ++j) {
+            max_fila = max(max_fila, m[aux_i][j]);
+        }
+
+        cota[aux_i] = max_fila;
+    }
 }
 
-int upper_bound(Node x) {
-    return x.snow + upper_bound_lookup[x.k];
-}
+res_t resolver(const matriz_t &m, const cota_t &c_inf, const cota_t &c_sup,
+        const vector<size_t> &carros, const vector<size_t> &caminos)
+{
+    size_t N = m.size();
+    size_t M = m[0].size();
 
-bool is_solution(Node x) {
-    return x.k == N;
-}
+    //Raíz
+    Nodo y = {0, 0, 0, vector<bool>(M)};
+    size_t mayor_calidad = y.calidad + c_inf[y.k];
 
-int branch_bound() {
-    Node y = {0, 0, 0, vector<bool>(M)}; // root
-    int maxSnow = lower_bound(y);
-    priority_queue<Node> queue;
-    queue.push(y);
+    priority_queue<Nodo> cola;
+    cola.push(y);
 
-    while (not queue.empty() and upper_bound(queue.top()) >= maxSnow) {
-        y = queue.top(); queue.pop();
+    while (!cola.empty() && (cola.top().calidad + c_sup[cola.top().k]) >= mayor_calidad) {
+        y = cola.top(); cola.pop();
 
-        for (int i = 0; i < M; ++i) {
-            if (not y.assigned[i] and carros[y.k] <= caminos[i]) {
-                Node x = {y.k + 1, y.snow + Matrix[y.k * M + i], 0, y.assigned};
-                x.optimistic = upper_bound(x);
-                x.assigned[i] = true;
+        for (size_t i = 0; i < M; ++i) {
+            if (!y.asignado[i] && carros[y.k] <= caminos[i]) {
+                Nodo x = {y.k + 1, y.calidad + m[y.k][i], 0, y.asignado};
+                x.asignado[i] = true;
 
-                if (is_solution(x)) {
-                    if (maxSnow < x.snow) {
-                        maxSnow = x.snow;
+                if (x.k == N) {     //Solución?
+                    if (x.calidad > mayor_calidad) {
+                        mayor_calidad = x.calidad;
                     }
                 } else {
-                    if (maxSnow <= x.optimistic) {
-                        queue.push(x);
+                    x.optimista = x.calidad + c_sup[x.k];
+                    if (x.optimista >= mayor_calidad) {
+                        cola.push(x);
 
-                        if (maxSnow < lower_bound(x)) {
-                            maxSnow = lower_bound(x);
+                        if ((x.calidad + c_inf[x.k]) > mayor_calidad) {
+                            mayor_calidad = x.calidad + c_inf[x.k];
                         }
                     }
                 }
@@ -101,7 +105,42 @@ int branch_bound() {
         }
     }
 
-    return maxSnow;
+    return mayor_calidad;
+}
+
+bool resuelveCaso()
+{
+    //Leer
+    size_t n, m;
+    cin >> n >> m;
+
+    vector<size_t> carros(n);
+    for (auto &c : carros) {
+        cin >> c;
+    }
+
+    vector<size_t> caminos(m);
+    for (auto &c : caminos) {
+        cin >> c;
+    }
+
+    matriz_t matriz (n, vector<size_t>(m, 0));
+    for (size_t i = 0; i < n; i++) {
+        for (size_t ii = 0; ii < m; ii++) {
+            cin >> matriz[i][ii];
+        }
+    }
+
+    cota_t cota_inferior(n), cota_superior(n);
+    rellenar_cota_inferior(cota_inferior, matriz);
+    rellenar_cota_superior(cota_superior, matriz);
+
+    res_t sol = resolver(matriz, cota_inferior, cota_superior, carros, caminos);
+
+    //Escribir
+    cout << sol << '\n';
+
+    return true;
 }
 
 int main() {
@@ -110,28 +149,14 @@ int main() {
     auto cinbuf = std::cin.rdbuf(in.rdbuf());
 #endif
 
-    int a;
-    cin >> a;
-    for (int i = 0; i < a; i++) {
-        cin >> N >> M;
-        carros.resize(N);
-        for (auto& a : carros) cin >> a;
-        caminos.resize(M);
-        for (auto& a : caminos) cin >> a;
-        Matrix.resize(N*M);
-        for (auto &c : Matrix) cin >> c;
+    size_t numCasos;
+    std::cin >> numCasos;
+    for (size_t i = 0; i < numCasos; ++i) 
+        resuelveCaso();
 
-        fill_lower_bound_lookup();
-        fill_upper_bound_lookup();
-
-
-        cout << branch_bound() << '\n';
-    }
-
-    // para dejar todo como estaba al principio
 #ifndef DOMJUDGE
     std::cin.rdbuf(cinbuf);
-    system("PAUSE");
 #endif
+
     return 0;
 }
