@@ -11,15 +11,15 @@ using matriz_t = vector<vector<int>>;
 
 res_t resolver(const string &s)
 {
-    size_t n = s.size();
+    int n = s.size();
     vector<vector<int>> m(n, vector<int>(n, n));
 
-    for (size_t i = 0; i < n; i++) {
+    for (int i = 0; i < n; i++) {
         m[i][i] = 1; 
     }
     
     for (int i = n - 2; 0 <= i; i--) {
-        for (size_t j = i + 1; j < n; j++) {
+        for (int j = i + 1; j < n; j++) {
             if (s[i] == s[i + 1]) {
                 m[i][j] = min(m[i][j], m[i + 1][j]);
             }
@@ -30,7 +30,7 @@ res_t resolver(const string &s)
                 m[i][j] = min(m[i][j], m[i + 1][j - 1] + 1);
             }
 
-            m[i][j] = min(m[i][j], std::min(m[i + 1][j], m[i][j - 1]) + 1);
+            m[i][j] = min(m[i][j], min(m[i + 1][j], m[i][j - 1]) + 1);
         }
     }
     return m[0][n - 1];
