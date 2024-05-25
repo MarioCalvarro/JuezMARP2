@@ -1,57 +1,84 @@
 // DG, Mario Calvarro Marines
 
+#include <algorithm>
 #include <iostream>
 #include <fstream>
-#include <utility>
 #include <vector>
-#include <limits.h>
 
 using namespace std;
 
-using res_t = size_t;
-//Min, formas
-using dato_t = pair<size_t, size_t>;
+using res_t = int;
+//First: duracion, Second: puntuacion
+using cancion = pair<int, int>;
 
-res_t resolver(size_t pagar, const vector<size_t> &monedas)
-{
-    size_t n = monedas.size();
-    vector<dato_t> v(pagar + 1, {INT_MAX, 0});
-    v[0] = {0, 1};
-
-    for (size_t i = 0; i < n; ++i) {
-        for (size_t j = monedas[i]; j < pagar + 1; ++j) {
-            //Nuevo mínimo
-            if (v[j - monedas[i]].first + 1 < v[j].first) {
-                v[j] = {v[j - monedas[i]].first + 1, v[j - monedas[i]].second};
-            }
-            //Otra forma para el mismo mínimo
-            else if (v[j - monedas[i]].first + 1 == v[j].first) {
-                v[j].second += v[j - monedas[i]].second;
-            }
-        }
-    }    
-
-    return v[pagar].second;
+bool operator<(const cancion& lhs, const cancion& rhs) {
+    return float(lhs.second) / lhs.first > float(rhs.second) / rhs.first;
 }
 
-bool resuelveCaso()
+int estimacion(const vector<cancion> &v, int d, int t1, int t2, int k, int val) {
+    int n = v.size();
+	int r = 2 * d - t1 - t2;
+	int i = k + 1;
+
+	while (i < n && v[i].first <= r) {
+		r -= v[i].first;
+		val += v[i].second;
+		i++;
+	}
+
+	if (i < n) {
+		val += (r * v[i].second) / v[i].first;
+	}
+
+	return val;
+}
+
+void resolver(const vector<cancion> &v, int d, int t1, int t2, int k, int val, int &maximo) {
+    int n = v.size();
+	maximo = max(maximo, val);
+
+	if (k < n) {
+		val += v[k].second;
+		t1 += v[k].first;
+		if (t1 <= d) {
+			resolver(v, d, t1, t2, k + 1, val, maximo);
+		}
+		t1 -= v[k].first;
+	
+		t2 += v[k].first;
+		if (t2 <= d) {
+			resolver(v, d, t1, t2, k + 1, val, maximo);
+		}
+		t2 -= v[k].first;
+		val -= v[k].second;
+
+		if (estimacion(v, d, t1, t2, k, val) > maximo) {
+			resolver(v, d, t1, t2, k + 1, val, maximo);
+		}
+	}
+}
+
+bool resuelveCaso() 
 {
     //Leer
-    size_t pagar, n;
-    cin >> pagar >> n;
+    int n, d;
+    cin >> n;
 
-    if (!std::cin)
+    if (n == 0)
         return false;
 
-    vector<size_t> monedas(n);
-    for (auto &m : monedas) {
-        cin >> m;
+    cin >> d;
+    vector<cancion> canciones(n);
+    for (auto &c : canciones) {
+        cin >> c.first >> c.second;
     }
 
-    res_t sol = resolver(pagar, monedas);
+    int maximo = 0;
+	sort(canciones.begin(), canciones.end());
+	resolver(canciones, d, 0, 0, 0, 0, maximo);
 
     //Escribir
-    cout << sol << '\n';
+    cout << maximo << '\n';
 
     return true;
 }
