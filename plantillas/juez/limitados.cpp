@@ -27,7 +27,7 @@ int main() {
     auto cinbuf = std::cin.rdbuf(in.rdbuf());
 #endif
 
-    int numCasos;
+    size_t numCasos;
     std::cin >> numCasos;
     for (size_t i = 0; i < numCasos; ++i) 
         resuelveCaso();
