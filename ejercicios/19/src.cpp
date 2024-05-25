@@ -8,6 +8,7 @@
 using namespace std;
 
 using res_t = int;
+
 //First: duracion, Second: puntuacion
 using cancion = pair<int, int>;
 
